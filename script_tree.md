@@ -1,5 +1,10 @@
 TOP :: PolicyReader
-	class :: type :: Planning (if it can be recognized autmatically)
+    :extractor:
+        - class :: type ::  EntityExtractor
+            attr :: 
+        
+
+	planning - class :: type :: Planning (if it can be recognized autmatically)
 		function :: .parse (generate following )
 		class :: element :: Document
 			attr :: .content --str
@@ -17,7 +22,8 @@ TOP :: PolicyReader
 			function :: .__getentity__
 			function :: .__gettime__
 			function :: .__getdepartment__
-
+			
+    type - class :: type :: Type
 		class :: element :: Rhetoric
 			attr :: .name
 			attr :: .tag

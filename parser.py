@@ -8,7 +8,8 @@ from nltk.tree import Tree
 from nltk.draw.tree import TreeView
 from pyhanlp import *
 import sys
-sys.path.append("/Users/mario/Documents/OneDrive/GitHub/")
+#sys.path.append("/Users/mario/Documents/OneDrive/GitHub/")
+sys.path.append("C:\\Users\\HiWin10\\Documents\\GitHub\\")
 from PolicyReader.type import *
 import re
 import pandas as pd
@@ -70,6 +71,7 @@ class TokenException(Exception):
 
 
 class Tokenizer(Preprocessor):
+    global logger
     """ class: Tokenizer """
     def Phrase(self,text,encoding="utf8") -> list:
         self.encoding=encoding
@@ -142,7 +144,8 @@ class Tokenizer(Preprocessor):
         self.indexedSegments = self.IndexedSegment(self.sentences)
         
 
-class Parser(Tokenizer,Verb,Rhetoric,Entity,Time,Department):
+class Parser(Tokenizer):
+    global logger
     def __init__(self,doc):
         """ Parser: a generalised method of parsing texts and transform them
         into desirable forms - array: [sentence:[tokens:]]
@@ -157,7 +160,7 @@ class Parser(Tokenizer,Verb,Rhetoric,Entity,Time,Department):
         
     
     def retriveEntity(self):
-        """  """
+        """ Entity retrieval calls extractor """
         pass
     
     
@@ -204,10 +207,16 @@ class Parser(Tokenizer,Verb,Rhetoric,Entity,Time,Department):
             # end for
             if verb:
                 VERB += [verb]
+            else:
+                VERB += [[""]]
             if rhetoric:
                 RHETORIC += [rhetoric]
+            else:
+                RHETORIC += [[""]]
             if other:
                 OTHER += [other]
+            else:
+                OTHER += [[""]]
         # end for
         self.other = OTHER
         # update Document:
@@ -218,22 +227,66 @@ class Parser(Tokenizer,Verb,Rhetoric,Entity,Time,Department):
         """ entity parse: retrieve entities """
         # retrieve by verbal words:
         
-        
-        
-        
+
         """ time parse: recognise Time """
-        
-        
+
         
         return doc
+      
         
-    
+class ParseException(Exception):
+    pass
+
+
 class DependencyParser:
     """ class: dependency-based parser
     Example: 调整新能源汽车推广应用财政补贴政策
     
     """
+    def query_by_word(self,word,depth,ID=""):
+        # get index of the word
+        self.wordQueryDepth = depth
+        df = pd.DataFrame(self.default_dependency)
+        if ID:
+            row = df[df["LEMMA"] == word][df["ID"] == ID]
+        else:
+            row = df[df["LEMMA"] == word]
+        if row.empty:
+            raise ParseException("invalid query with no match")
+        # original dependency objective: default_hanlpObject
+        depList = list(self.default_hanlpObject)        
+        _output = []
+        for i in range(len(row)):
+            one = pd.DataFrame()
+            one = one.append(row.iloc[i:(i+1)])
+            one["ID"] = one["ID"].astype("int")
+            one["HEAD"] = one["HEAD"].astype("int")  
+            _startKey = one.iloc[i,]["ID"]  # only one element
+            _start = df[df["HEAD"] == _startKey]
+            # update df: one
+            one = one.append(_start)
+            while depth > 0:
+                # _start["ID"] might be multi-valued
+                _temp = pd.DataFrame()
+                for j in range(len(_start)):
+                    two = df[df["HEAD"] == _start.iloc[j,]["ID"]]
+                    one = one.append(two)
+                    _temp = _temp.append(two)
+                # end for
+                depth -= 1
+                _start = _temp.copy()
+            # end while
+            one = one.sort_values("ID")
+            _output += [one]
+        # end for
+        return _output
+            
+    
     def _hanlp_find_dependencyChildren(self,dep,start):
+        """ findChildren inherited from HanLP Dependency operator
+        :dep: dependency objective by HanLP.dependencyParse
+        :start: dependencyParse sub-objective from list(dep)
+        """
         stack = [start]
         ladder = {}
         while True:
@@ -248,7 +301,7 @@ class DependencyParser:
             # end for
             stack += list(dep.findChildren(one))
         return ladder
-
+    
     
     def query_by_relation(self,relation:dict = None,query:list=[]) -> dict:
         """ This query method helps collapse the dependency relation and return a dict:
@@ -286,7 +339,7 @@ class DependencyParser:
         return _phrase
         
     
-    def _default_parser(self,text: str) -> dict:
+    def _default_parser(self,text: str):
         """
         * Description:
         default parser based on Hanlp, details see at: https://github.com/hankcs/pyhanlp
@@ -324,11 +377,13 @@ class DependencyParser:
             reltable[item] += [{"from":"%s_%s"%(dict_conll["LEMMA"][index],dict_conll["ID"][index]),"to":"%s_%s"%(dict_conll["LEMMA"][dict_conll["HEAD"][index] - 1],dict_conll["ID"][dict_conll["HEAD"][index] - 1])}]
             
         self.default_dependency_relation = reltable
-        self.relation = reltable
+        self.relation = reltable        
+        if len(reltable) <= 1:
+            self.dependencyString = "(核心关系 %s)"%(reltable["核心关系"][0]["from"])
+            return self
         
-        logger.info("[Default DepParser] Parse by HanLP.parseDependency: ")
         # display the dependency in tree plot:
-        display(pd.DataFrame(dict_conll))
+        # display(pd.DataFrame(dict_conll))
         
         # save self.dependencyString for drawing
         # example: '(ROOT(IP(NP(PN 我))(VP (VV 叫) (NP (NN 小米)))))' --> cfg
@@ -357,9 +412,9 @@ class DependencyParser:
                 temp[item] = item + " ".join(_phrase)
         # end for
         phrase = "(核心关系 %s)"%temp[ladder_keys[-1]]
-        
         # output string:
         self.dependencyString = phrase
+        return self
         
     
     def draw(self,img_outdir=None):
@@ -401,5 +456,12 @@ class DependencyParser:
     def __init__(self):
         # provide default parsing:
         #self._default_parser(text)
-        pass
+        return
         # in the future, we can provide more customized models for dependency parsing:
+        
+    def __str__(self):
+        return self.dependencyString
+    
+    
+    
+    

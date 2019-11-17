@@ -14,6 +14,7 @@ import logging
 
 __LogFormat__ = "%(asctime)s %(levelname)s %(message)s"
 
+
 logging.basicConfig(format=__LogFormat__)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

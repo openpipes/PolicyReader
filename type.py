@@ -36,7 +36,7 @@ class Document(object):
         return "\n".join(lines)
     
         
-    def __init__(self,string="",path=None,title=None):
+    def __init__(self,path=None,string="",title=None):
         if path:
             self.__docpath__ = path
             self.content = self.loader(path)
@@ -79,26 +79,47 @@ class Verb(object):
     
         
 class Entity(object):
-    """ Entity class: each indexed entity should be saved as Entity. """
-    def updateTriple(self,ref:str,value):
-        """ :ref: name of relationship between entity and value 
-            :value: value which is connected to entity
-        """
-        if self.triples.get(ref):
-            self.triples[ref] += [value]
-        else:
-            self.triples[ref] = [value]
-            
-    
-    def __init__(self,name,tag,**kargs):
-        """ *kargs follow in the form of ref=x,value=y """
-        self.name = name
-        self.tag = tag
-        self.triples = {}
+    """ Entity class: each indexed entity should be saved as Entity. """                
+    def __init__(self,src,tar,decoration,sentence):
+        """ Entity objective follows in a BIO format. """
+        self.src = src
+        self.tar = tar
+        self.decoration = decoration
+        self.triple = (src,decoration,tar)
+        # BIO annotation:
+        bio = ""
+        src = ""
+        tar = ""
+        dec = ""
+        for index,char in enumerate(self.src):
+            if index == 0:
+                src += char + "_B-Verb"
+            else:
+                src += char + "_I-Verb"
+        for index,char in enumerate(self.tar):
+            if index == 0:
+                tar += char + "_B-Obj"
+            else:
+                tar += char + "_I-Obj"
+        for index,char in enumerate(self.decoration):
+            if index == 0:
+                dec += char + "_B-Dec"
+            else:
+                dec += char + "_I-Dec"
+        # replace the raw sentence:
+        sentence = sentence.replace(self.src,src)
+        sentence = sentence.replace(self.tar,tar)
+        sentence = sentence.replace(self.decoration,dec)
+        self.entityAnnotation = sentence
+        
+        
+    def __str__(self):
+        return "[Entity] v:{} d:{} o:{}".format(self.src,self.decoration,self.tar)
             
 
 class Time(object):
-    pass
+    def __init__(self,name,raw):
+        pass
 
 class Department(object):
     pass
