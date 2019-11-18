@@ -10,7 +10,7 @@ from pyhanlp import *
 import sys
 #sys.path.append("/Users/mario/Documents/OneDrive/GitHub/")
 sys.path.append("C:\\Users\\HiWin10\\Documents\\GitHub\\")
-from PolicyReader.type import *
+#from PolicyReader.type import *
 import re
 import pandas as pd
 import copy
@@ -182,11 +182,8 @@ class Parser(Tokenizer):
         # v::动词 vd::副动词	vf::趋向动词	vg::动词性语素	vi::不及物动词（内动词）	
         # vl::动词性惯用语	 vn::名动词	vshi::动词“是”	vx::形式动词	vyou::动词“有”
         _verbalRef = ["v","vd","vf","vg","vi","vl","vn","vx"] # remove shi and you
-        # :rhetoric
-        _adjRef = ["a","ad","an","ag","al"]
-        _advRef = ["d"]
                 
-        VERB,RHETORIC,OTHER = [],[],[]
+        VERB,OTHER = [],[]
         VOCAB = {}
         for sentence in self.indexedSegments:
             verb,rhetoric,other = [],[],[]
@@ -199,9 +196,6 @@ class Parser(Tokenizer):
                     
                 if token[1] in _verbalRef:
                     verb += [Verb(token[0],token[1])]
-                    
-                elif token[1] in (_adjRef+_advRef):
-                    rhetoric += [Rhetoric(token[0],token[1])]
                 else:
                     other += token
             # end for
@@ -209,10 +203,7 @@ class Parser(Tokenizer):
                 VERB += [verb]
             else:
                 VERB += [[""]]
-            if rhetoric:
-                RHETORIC += [rhetoric]
-            else:
-                RHETORIC += [[""]]
+
             if other:
                 OTHER += [other]
             else:
@@ -221,7 +212,6 @@ class Parser(Tokenizer):
         self.other = OTHER
         # update Document:
         doc.vocab = VOCAB
-        doc.rhetoric = RHETORIC
         doc.verb = VERB
         
         """ entity parse: retrieve entities """
@@ -243,7 +233,7 @@ class DependencyParser:
     Example: 调整新能源汽车推广应用财政补贴政策
     
     """
-    def query_by_word(self,word,depth,ID=""):
+    def query_by_word(self,word,depth,direction="downward",ID=""):
         # get index of the word
         self.wordQueryDepth = depth
         df = pd.DataFrame(self.default_dependency)
@@ -261,15 +251,22 @@ class DependencyParser:
             one = one.append(row.iloc[i:(i+1)])
             one["ID"] = one["ID"].astype("int")
             one["HEAD"] = one["HEAD"].astype("int")  
-            _startKey = one.iloc[i,]["ID"]  # only one element
-            _start = df[df["HEAD"] == _startKey]
-            # update df: one
+            if direction=="downward":
+                _startKey = one.iloc[i,]["ID"]  # only one element
+                _start = df[df["HEAD"] == _startKey]
+            else:
+                _startKey = one.iloc[i,]["HEAD"]  # only one element
+                _start = df[df["ID"] == _startKey]            # update df: one
             one = one.append(_start)
             while depth > 0:
                 # _start["ID"] might be multi-valued
                 _temp = pd.DataFrame()
                 for j in range(len(_start)):
-                    two = df[df["HEAD"] == _start.iloc[j,]["ID"]]
+                    # extract the downward leaves:
+                    if direction=="downward":
+                        two = df[df["HEAD"] == _start.iloc[j,]["ID"]]
+                    else:
+                        two = df[df["ID"] == _start.iloc[j,]["HEAD"]]
                     one = one.append(two)
                     _temp = _temp.append(two)
                 # end for

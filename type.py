@@ -30,8 +30,12 @@ class Document(object):
         
     
     def loader(self,path):
-        f = open(path,"r",encoding="utf8")
-        lines = f.read().splitlines()
+        try:
+            f = open(path,"r",encoding="utf8")
+            lines = f.read().splitlines()
+        except:
+            f = open(path,"r",encoding="gbk")
+            lines = f.read().splitlines()
         f.close()
         return "\n".join(lines)
     
@@ -62,11 +66,12 @@ class Document(object):
     
     
 class Rhetoric(object):
-    def __init__(self,name,tag):
-        self.name = name
-        self.tag = tag
+    def __init__(self,src,tar,srcType):
+        self.src = src
+        self.tar = tar
+        self.srcType = srcType
     def __str__(self):
-        return "[Rhetoric] name:{},tag:{}".format(self.name,self.tag)
+        return "[Rhetoric] source:{}({}),target:{}".format(self.src,self.srcType,self.tar)
     
 
 class Verb(object):
@@ -118,8 +123,29 @@ class Entity(object):
             
 
 class Time(object):
-    def __init__(self,name,raw):
-        pass
+    year = ""
+    month = ""
+    day = ""
+    hour = ""
+    minute = ""
+    second = ""
+    def __init__(self,name,raw,**kw):
+        """ Time class: recognize time element in corpus
+        :name: normalised time format e.g. "2011-11-11 00:00:00"
+        :raw: raw textual mention in the raw corpus
+            ------
+        **kw: a set of {year, month, day, hour, minute, second} attrs
+        """
+        self.name = name
+        self.raw = raw
+        if kw:
+            for k,v in kw.items():
+                if k in dir(self):
+                    self.__setattr__(k,v)
+    
+    def __str__(self):
+        return "[Time] time:{},raw:{}".format(self.name,self.raw)
+    
 
 class Department(object):
     pass

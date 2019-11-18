@@ -7,6 +7,7 @@ TOP :: PolicyReader
 	planning - class :: type :: Planning (if it can be recognized autmatically)
 		function :: .parse (generate following )
 		class :: element :: Document
+    		attr :: .keywords --list (obtained from EntityExtractor,temporarily)
 			attr :: .content --str
 			attr :: .doctype --str(planning or else)
 			attr :: .title --str
@@ -25,10 +26,10 @@ TOP :: PolicyReader
 			
     type - class :: type :: Type
 		class :: element :: Rhetoric
-			attr :: .name
-			attr :: .tag
-			#attr :: .oc (object complement)
-			#attr :: .nc (noun complement)
+			attr :: .src
+			attr :: .tar
+			attr :: .srcType --POSTAG
+			
 
 		class :: element :: Verb
 			attr :: .name
