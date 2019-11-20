@@ -10,7 +10,7 @@ class TypeException(Exception):
 
 class Document(object):
     name = "" # equivalent to title
-    vocab = ""
+    vocab = "" # can be further indexed for query in both dependencies or structures
     content = ""
     title = ""
     verb = ""
@@ -63,7 +63,13 @@ class Document(object):
     
     
     #def 
+class Noun(object):
+    def __init__(self,name):
+        self.name = name
     
+    def __str__(self):
+        return "[Noun] {}".format(self.name)
+
     
 class Rhetoric(object):
     def __init__(self,src,tar,srcType):

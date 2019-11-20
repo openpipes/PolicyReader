@@ -158,16 +158,6 @@ class Parser(Tokenizer):
         doc.sentences = self.sentences
         doc.indexedSegments = self.indexedSegments
         
-    
-    def retriveEntity(self):
-        """ Entity retrieval calls extractor """
-        pass
-    
-    
-    
-    def retriveTime(self):
-        pass
-    
         
     def parse(self):
         """ select verbs and pipe them into Verb class
@@ -212,11 +202,7 @@ class Parser(Tokenizer):
         self.other = OTHER
         # update Document:
         doc.vocab = VOCAB
-        doc.verb = VERB
-        
-        """ entity parse: retrieve entities """
-        # retrieve by verbal words:
-        
+        doc.verb = VERB               
 
         """ time parse: recognise Time """
 

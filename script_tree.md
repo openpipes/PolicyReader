@@ -1,7 +1,13 @@
 TOP :: PolicyReader
     :extractor:
         - class :: type ::  EntityExtractor
-            attr :: 
+            function :: dependencyExtract --return self.doc
+            function :: embedding
+            function :: keywordExtract --return self.doc
+            function :: rhetoricExtractor --list
+            function :: verbalExtractor --list
+            function :: timeExtractor --list
+            function :: nounExtractor --list
         
 
 	planning - class :: type :: Planning (if it can be recognized autmatically)
@@ -12,6 +18,7 @@ TOP :: PolicyReader
 			attr :: .doctype --str(planning or else)
 			attr :: .title --str
 			attr :: .vocab --dist
+			attr :: .noun --list
 			attr :: .verb --list
 			attr :: .rhetoric --list
 			attr :: .time --Time
@@ -34,6 +41,9 @@ TOP :: PolicyReader
 		class :: element :: Verb
 			attr :: .name
 			attr :: .tag # 对应的动词词性
+
+        class :: element :: Noun
+            attr :: .name
 
 		class :: element :: Entity
     		function :: .update (update index from database)

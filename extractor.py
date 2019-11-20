@@ -28,14 +28,15 @@ class EntityExtractor(object):
         corpus = self.doc.sentences        
         # call ._default_parser
         relObj = []
-        vob_entites,rhe = [],[]
+        vob_entites,rhe,noun = [],[],[]
         for index,each in enumerate(corpus):
             _rel = DependencyParser()._default_parser(each)
             vob_entites += [self.verbalExtractor(_rel)]
             rhe += [self.rhetoricExtractor(_rel)]
+            noun += [self.nounExtractor(_rel)]
             # temporarily storage:
             relObj += [_rel]
-            sys.stdout.write("\r[DependencyParser] process No.%s sentence ..."%(index+1))
+            sys.stdout.write("\r[DependencyParser] process {}% sentences ...".format(int((index+1)/len(corpus))))
             sys.stdout.flush()
         # here, the index follows the order in sentences:
         self.doc.indexedDependency = relObj
@@ -43,15 +44,15 @@ class EntityExtractor(object):
         # end. assign 
         self.doc.entity = vob_entites
         self.doc.rhetoric = rhe
+        self.doc.noun = noun
         # remained for the rest:
-        
         return self.doc
     
     def embedding(self):
         # ./src/wv_model
         pass
     
-    def grammarExtract(self):
+    def keywordExtract(self):
         # prepare sentence-level corpus:
         indexedSegments = self.doc.indexedSegments
         indexedSegments = [[word[0] for word in sentence if word[1]!="w"] for sentence in indexedSegments]
@@ -118,6 +119,48 @@ class EntityExtractor(object):
             # end
         # end
         return rhe
+    
+    
+    def nounExtractor(self,relObj):
+        """ Noun extractor depends on dependency objects """
+        # extract nouns by completion
+        df = pd.DataFrame(relObj.default_dependency)
+        postags = df["POSTAG"].tolist()
+        queryBox = []
+        for index,pos in enumerate(postags):
+            if pos.startswith("n"):
+                row = df.iloc[index,]
+                word = row["LEMMA"]
+                query = relObj.query_by_word(word,1,ID=row["ID"])[0] # type: list
+                if queryBox:
+                    if len(query) > 1:
+                        for index,each in enumerate(queryBox):
+                            if set(query.index).intersection(set(each.index)):
+                                if len(query) > len(each):
+                                    queryBox.pop(index)
+                                    queryBox += [query]
+                                else:
+                                    next
+                            else:
+                                queryBox += [query]
+                        # end
+                    else:
+                        queryBox += [query]
+                else:
+                    queryBox += [query]
+            else:
+                next
+        # end
+        nouns = []
+        _dup = []
+        for each in queryBox:
+            each = each[each["POSTAG"]!="w"]
+            name = "".join(each["LEMMA"].tolist())
+            if name not in _dup:
+                nouns += [Noun(name)]     
+            _dup += [name]
+            _dup = list(set(_dup))
+        return nouns
         
     
     def timeExtractor(self):
