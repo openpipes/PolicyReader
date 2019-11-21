@@ -7,17 +7,18 @@
 from pyhanlp import *
 from datetime import datetime
 import sys
-sys.path.append("C:\\Users\\HiWin10\\Documents\\GitHub\\")
-#from PolicyReader.parser import Parser,DependencyParser
 import pandas as pd
 import os
 import gensim
 import numpy as np
 from collections import Counter
-from TimeNormalizer import TimeNormalizer
+#from .parser import Parser,DependencyParser
+#from .type import Entity,Rhetoric,Noun
 
-# encoding
-_encoding = "utf8"
+import logging
+logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class ExtractorException(Exception):
     pass
@@ -36,7 +37,7 @@ class EntityExtractor(object):
             noun += [self.nounExtractor(_rel)]
             # temporarily storage:
             relObj += [_rel]
-            sys.stdout.write("\r[DependencyParser] process {}% sentences ...".format(int((index+1)/len(corpus))))
+            sys.stdout.write("\r[DependencyParser] process No.{} sentences ...".format(index+1))
             sys.stdout.flush()
         # here, the index follows the order in sentences:
         self.doc.indexedDependency = relObj

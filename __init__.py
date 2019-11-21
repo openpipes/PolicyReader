@@ -5,15 +5,10 @@ This toolkit contains a list of components helping with parse context and extrac
 """
 import logging
 
-__LogFormat__ = "%(asctime)s %(levelname)s %(message)s"
-
-logging.basicConfig(format=__LogFormat__)
+logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-#from .parser import *
-#from .type import *
-#from .extractor import *
 
 """ for test
 doc = Document("./src/example_information_guangxi_135.txt")

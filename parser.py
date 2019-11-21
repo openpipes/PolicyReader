@@ -9,14 +9,18 @@ from nltk.draw.tree import TreeView
 from pyhanlp import *
 import sys
 #sys.path.append("/Users/mario/Documents/OneDrive/GitHub/")
-sys.path.append("C:\\Users\\HiWin10\\Documents\\GitHub\\")
-#from PolicyReader.type import *
 import re
 import pandas as pd
 import copy
+import logging
+#from .type import Verb
+
+logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-class Preprocessor:
+class Preprocessor(object):
     def _symbol_remover(self,text):
         """ This method applies only on sentence, removing \\n too. """
         if not isinstance(text,list):
@@ -71,7 +75,6 @@ class TokenException(Exception):
 
 
 class Tokenizer(Preprocessor):
-    global logger
     """ class: Tokenizer """
     def Phrase(self,text,encoding="utf8") -> list:
         self.encoding=encoding
@@ -108,7 +111,7 @@ class Tokenizer(Preprocessor):
             else:
                 next    
         # end for
-        logger.info("[Tokenize] fetch %s paragraphs. "%len(tokens))
+        logger.info("\r[Tokenize] fetch %s paragraphs. "%len(tokens))
         if tokens:
             return tokens
         else:
@@ -145,7 +148,6 @@ class Tokenizer(Preprocessor):
         
 
 class Parser(Tokenizer):
-    global logger
     def __init__(self,doc):
         """ Parser: a generalised method of parsing texts and transform them
         into desirable forms - array: [sentence:[tokens:]]
@@ -157,7 +159,7 @@ class Parser(Tokenizer):
         super(Parser, self).__init__(string)
         doc.sentences = self.sentences
         doc.indexedSegments = self.indexedSegments
-        
+        self.doc = doc
         
     def parse(self):
         """ select verbs and pipe them into Verb class
@@ -201,20 +203,20 @@ class Parser(Tokenizer):
         # end for
         self.other = OTHER
         # update Document:
-        doc.vocab = VOCAB
-        doc.verb = VERB               
+        self.doc.vocab = VOCAB
+        self.doc.verb = VERB               
 
         """ time parse: recognise Time """
 
         
-        return doc
+        return self.doc
       
         
 class ParseException(Exception):
     pass
 
 
-class DependencyParser:
+class DependencyParser(object):
     """ class: dependency-based parser
     Example: 调整新能源汽车推广应用财政补贴政策
     
@@ -430,7 +432,7 @@ class DependencyParser:
             if out > 0:
                 logger.error("[Dependency Draw] install ImageMagicK or the path is invaild. ")
             else:
-                logger.info("[Dependency Parser] output tree image at [%s] "%convert_name)
+                logger.error("[Dependency Parser] output tree image at [%s] "%convert_name)
                 
             # return tc
             tc.pretty_print()
