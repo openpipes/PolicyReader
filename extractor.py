@@ -13,15 +13,18 @@ import gensim
 import numpy as np
 from collections import Counter
 #from .parser import Parser,DependencyParser
-#from .type import Entity,Rhetoric,Noun
+#from .type import *
+#Entity,Rhetoric,Noun,Department,Enterprise,Location,University
 
 import logging
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 class ExtractorException(Exception):
     pass
+
 
 class EntityExtractor(object):
     def dependencyExtract(self):
@@ -32,9 +35,11 @@ class EntityExtractor(object):
         vob_entites,rhe,noun = [],[],[]
         for index,each in enumerate(corpus):
             _rel = DependencyParser()._default_parser(each)
-            vob_entites += [self.verbalExtractor(_rel)]
-            rhe += [self.rhetoricExtractor(_rel)]
-            noun += [self.nounExtractor(_rel)]
+            # pre-defined entities like: org, people, loc...
+            self.entityExtractor(_rel)
+            self.rhetoricExtractor(_rel)
+            self.nounExtractor(_rel)
+            self.predefinedExtractor(_rel)
             # temporarily storage:
             relObj += [_rel]
             sys.stdout.write("\r[DependencyParser] process No.{} sentences ...".format(index+1))
@@ -42,12 +47,15 @@ class EntityExtractor(object):
         # here, the index follows the order in sentences:
         self.doc.indexedDependency = relObj
         # verbal extraction part:
-        # end. assign 
-        self.doc.entity = vob_entites
-        self.doc.rhetoric = rhe
-        self.doc.noun = noun
+        # end. assign
+        self.genVocabulary()
         # remained for the rest:
         return self.doc
+    
+    
+    def genVocabulary(self):
+        self.doc.vocab = [key for key in self.doc.archive.keys()]
+    
     
     def embedding(self):
         # ./src/wv_model
@@ -82,8 +90,36 @@ class EntityExtractor(object):
         self.doc.keywords = indexedKeywords
         return self.doc
 
+
+    def predefinedExtractor(self,relObj):
+        """
+        Pre-defined entity recognition
+        :param relObj: Dependency Object
+        Note: noun terms are pre-given and the retrieved one is a subset.
+        """
+        doc = self.doc
+        df = pd.DataFrame(relObj.default_dependency)
+        ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")
+        # more efficient if using array other than hashmap
+        terms = {each.split(",")[0]:each.split(",")[1] for each in ref.read().splitlines()}
+        ref.close()
         
+        for name,tag in zip(df["LEMMA"],df["POSTAG"]):
+            if tag in terms:
+                if tag == "nto":
+                    doc[name] = Department(name)
+                elif tag == "ntc":
+                    doc[name] = Enterprise(name)
+                elif tag.startswith("ns"):
+                    doc[name] = Location(name)
+                else:
+                    doc[name] = terms[tag]
+        # end        
+        self.doc = doc
+    
+
     def rhetoricExtractor(self,relObj):
+        doc = self.doc
         """ Rhetoric rule: 形容词和副词 
         :Caution: 在这里没有对修辞进行区分，存在表示不同情感和方向的修辞
         """
@@ -91,8 +127,7 @@ class EntityExtractor(object):
         _adjRef = ["a","ad","an","ag","al"]
         _advRef = ["d"]
         df = pd.DataFrame(relObj.default_dependency)
-        # basically, rhetoric represents "定中关系" in dependency
-        rhe = []
+        # basically, rhetoric represents "定中关系" in dependency        
         duplicates = pd.DataFrame()
         for each in (_adjRef+_advRef):
             adj = pd.DataFrame()
@@ -110,21 +145,22 @@ class EntityExtractor(object):
                             if len(q) > 1:
                                 q = q.drop(index=q[q["LEMMA"]==src].index)
                                 tar = "".join(q["LEMMA"].tolist())
-                                rhe += [Rhetoric(src=src,tar=tar,srcType=srctype)]
+                                doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype)
                     else:
                         if len(q) > 1:
                             q = q.drop(index=q[q["LEMMA"]==src].index)
                             tar = "".join(q["LEMMA"].tolist())
-                            rhe += [Rhetoric(src=src,tar=tar,srcType=srctype)]
+                            doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype)
                 # end
             # end
         # end
-        return rhe
+        self.doc = doc
     
     
     def nounExtractor(self,relObj):
         """ Noun extractor depends on dependency objects """
         # extract nouns by completion
+        doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
         postags = df["POSTAG"].tolist()
         queryBox = []
@@ -152,27 +188,29 @@ class EntityExtractor(object):
             else:
                 next
         # end
-        nouns = []
         _dup = []
         for each in queryBox:
             each = each[each["POSTAG"]!="w"]
             name = "".join(each["LEMMA"].tolist())
             if name not in _dup:
-                nouns += [Noun(name)]     
+                doc[name] = Noun(name)     
             _dup += [name]
             _dup = list(set(_dup))
-        return nouns
+        
+        self.doc = doc
         
     
     def timeExtractor(self):
         # recommend: regexpr
         pass
     
-    def verbalExtractor(self,relObj):
+    
+    def entityExtractor(self,relObj):
         """ A number of rules: 动宾,并列, 主谓等 """
         # df = pd.DataFrame(dp.default_dependency),
         # `dependency.default_dependency` for query:
         # 动宾关系
+        doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
         df_vob = df[df["DEPREL"] == "动宾关系"]
         if df_vob.empty: # no 动宾关系 found
@@ -190,14 +228,12 @@ class EntityExtractor(object):
             # remove the duplicated entity (e.g. subset of the existed)
             if not duplicates.empty:
                 if row["ID"] not in duplicates["ID"].values:
-                    entity = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
-                    vob += [entity]
+                    doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
             else:
-                entity = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
-                vob += [entity]
+                doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
             duplicates = duplicates.append(q)
         # end 
-        return vob
+        self.doc = doc
         
     
     def __init__(self,doc):

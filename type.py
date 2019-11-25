@@ -8,37 +8,39 @@
 class TypeException(Exception):
     pass
 
+
 class Document(object):
-    name = "" # equivalent to title
-    vocab = "" # can be further indexed for query in both dependencies or structures
+    archive = {} # store vocabulatry and its properties 
     content = ""
-    title = ""
-    verb = ""
-    rhetoric = ""
-    time = ""
-    department = ""
-    entity = ""
     doctype = ""
-    sentences = []
     indexedSegments = []
-    def query(self,word):
-        """ Query functions as the extraction method of having a micro structure
-        :word: the word is to be searched
-        """
-        
-        pass
-        
+    name = "" # equivalent to title
+    sentences = []
+    title = ""
     
-    def loader(self,path):
-        try:
-            f = open(path,"r",encoding="utf8")
-            lines = f.read().splitlines()
-        except:
-            f = open(path,"r",encoding="gbk")
-            lines = f.read().splitlines()
-        f.close()
-        return "\n".join(lines)
+    def __contains__(self,key):
+        """ Mask for `key in class` function """
+        return self[key] is not None
     
+    
+    def __setitem__(self,key,value):
+        # value can be Classes
+        if isinstance(value,(Entity,Rhetoric)):
+            if self.archive.get(key):
+                self.archive[key] = [self.archive[key],value]
+            else:
+                self.archive[key] = value
+                
+        elif isinstance(value,(str,Noun,Department,Enterprise,Location,University)):
+            self.archive[key] = value
+        
+        else:
+            raise TypeException("Invalid value for archive.")
+            
+        
+    def __getitem__(self,key):
+        return self.archive[key]
+            
         
     def __init__(self,path=None,string="",title=None):
         if path:
@@ -59,10 +61,20 @@ class Document(object):
     
     def __str__(self):
         LIMIT = 50
-        return "[Document] : {}...".format(self.content[:LIMIT])
+        return "[Document] : {}...\nwith {} tokens in vocabulary.".format(self.content[:LIMIT],len(self.archive))
     
     
-    #def 
+    def loader(self,path):
+        try:
+            f = open(path,"r",encoding="utf8")
+            lines = f.read().splitlines()
+        except:
+            f = open(path,"r",encoding="gbk")
+            lines = f.read().splitlines()
+        f.close()
+        return "\n".join(lines)
+
+
 class Noun(object):
     def __init__(self,name):
         self.name = name
@@ -152,6 +164,58 @@ class Time(object):
     def __str__(self):
         return "[Time] time:{},raw:{}".format(self.name,self.raw)
     
+    
+class University(object):
+    """ University class
+    :param name: the name of university
+    :param location: the location of university
+    """
+    def __init__(self,name,location="unknown"):
+        self.name = name
+        self.location = location
+    
+    def __str__(self):
+        return "[University] name:{}".format(self.name)
+
+
+class Location(object):
+    """ Location class
+    :param name: the name of location
+    :param province: administrative region of province
+    """
+    def __init__(self,name,province="unknown"):
+        self.name = name
+        self.province = province
+        self.long = "" # can be updated
+        self.lat = ""
+        
+    def __str__(self):
+        return "[Location] name:{}".format(self.name)
+    
 
 class Department(object):
-    pass
+    """ Department class
+    :param name: the name of department
+    :param tier: the level of department
+    """
+    def __init__(self,name,tier="unknown"):
+        self.name = name
+        self.tier = tier
+    
+    def __str__(self):
+        return "[Department] name:{} tier:{}".format(self.name,self.tier)
+
+
+class Enterprise(object):
+    """ Enterprise class
+    :param name: the name of enterprise
+    :param location: the location of enterprise
+    """
+    def __init__(self,name,location="unknown"):
+        self.name = name
+        self.location = location
+        
+    def __str__(self):
+        return "[Enterprise] name:{} location:{}".format(self.name,self.location)
+
+    

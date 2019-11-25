@@ -217,22 +217,18 @@ class ParseException(Exception):
 
 
 class DependencyParser(object):
-    """ class: dependency-based parser
-    Example: 调整新能源汽车推广应用财政补贴政策
-    
-    """
+    """ Dependency-based Parser """
     def query_by_word(self,word,depth,direction="downward",ID=""):
         # get index of the word
         self.wordQueryDepth = depth
         df = pd.DataFrame(self.default_dependency)
         if ID:
-            row = df[df["LEMMA"] == word][df["ID"] == ID]
+            row = df.query("LEMMA=='{}' and ID=={}".format(word,ID))
         else:
-            row = df[df["LEMMA"] == word]
+            row = df.query("LEMMA=='{}'".format(word))
         if row.empty:
             raise ParseException("invalid query with no match")
         # original dependency objective: default_hanlpObject
-        depList = list(self.default_hanlpObject)        
         _output = []
         for i in range(len(row)):
             one = pd.DataFrame()
@@ -240,11 +236,11 @@ class DependencyParser(object):
             one["ID"] = one["ID"].astype("int")
             one["HEAD"] = one["HEAD"].astype("int")  
             if direction=="downward":
-                _startKey = one.iloc[i,]["ID"]  # only one element
-                _start = df[df["HEAD"] == _startKey]
+                _startKey = one["ID"].values[0]  # only one element
+                _start = df.query("HEAD=={}".format(_startKey))
             else:
-                _startKey = one.iloc[i,]["HEAD"]  # only one element
-                _start = df[df["ID"] == _startKey]            # update df: one
+                _startKey = one["HEAD"].values[0]  # only one element
+                _start = df.query("ID=={}".format(_startKey)) # update df: one
             one = one.append(_start)
             while depth > 0:
                 # _start["ID"] might be multi-valued
@@ -252,9 +248,9 @@ class DependencyParser(object):
                 for j in range(len(_start)):
                     # extract the downward leaves:
                     if direction=="downward":
-                        two = df[df["HEAD"] == _start.iloc[j,]["ID"]]
+                        two = df.query("HEAD=={}".format(_start["ID"].iloc[j,]))
                     else:
-                        two = df[df["ID"] == _start.iloc[j,]["HEAD"]]
+                        two = df.query("ID=={}".format(_start["HEAD"].iloc[j,]))
                     one = one.append(two)
                     _temp = _temp.append(two)
                 # end for

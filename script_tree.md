@@ -13,6 +13,7 @@ TOP :: PolicyReader
 	planning - class :: type :: Planning (if it can be recognized autmatically)
 		function :: .parse (generate following )
 		class :: element :: Document
+    		attr :: .archive --dict (vocabulary indexing)
     		attr :: .keywords --list (obtained from EntityExtractor,temporarily)
 			attr :: .content --str
 			attr :: .doctype --str(planning or else)
@@ -21,6 +22,7 @@ TOP :: PolicyReader
 			attr :: .noun --list
 			attr :: .verb --list
 			attr :: .rhetoric --list
+			attr :: .terms --dict
 			attr :: .time --Time
 			attr :: .department --list
 			attr :: .entity --dict:key=name,value=class(Entity)
@@ -63,7 +65,19 @@ TOP :: PolicyReader
 		class :: element :: Department
 			attr :: .tier (national, provincial, city, county)
 			attr :: .name
-			
+
+        class :: element :: University
+            attr :: .name
+            attr :: .location
+            
+        class :: element :: Location
+            attr :: .name
+            attr :: .province
+            
+        class :: element :: Enterprise
+            attr :: .name
+            attr :: .location
+
 
 TOP :: 
 	class :: tool :: Database
