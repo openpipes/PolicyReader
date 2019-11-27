@@ -15,6 +15,7 @@ import copy
 import logging
 #from .type import Verb
 
+
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -177,7 +178,7 @@ class Parser(Tokenizer):
                 
         VERB,OTHER = [],[]
         VOCAB = {}
-        for sentence in self.indexedSegments:
+        for index,sentence in enumerate(self.indexedSegments):
             verb,rhetoric,other = [],[],[]
             for token in sentence:
                 if VOCAB.get(token[1]):
@@ -187,7 +188,7 @@ class Parser(Tokenizer):
                     VOCAB[token[1]] = [token[0]]
                     
                 if token[1] in _verbalRef:
-                    verb += [Verb(token[0],token[1])]
+                    verb += [Verb(token[0],token[1],self.sentences[index])]
                 else:
                     other += token
             # end for
@@ -320,7 +321,7 @@ class DependencyParser(object):
         return _phrase
         
     
-    def _default_parser(self,text: str):
+    def default_parser(self,text: str):
         """
         * Description:
         default parser based on Hanlp, details see at: https://github.com/hankcs/pyhanlp
@@ -332,7 +333,7 @@ class DependencyParser(object):
         * Return:
         return the dict object which contains the basic information in CoNLL format
         """
-        self._default_text = text
+        self.default_text = text
         dep = HanLP.parseDependency(text)
         self.default_hanlpObject = dep
         

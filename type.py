@@ -12,11 +12,11 @@ class TypeException(Exception):
 class Document(object):
     archive = {} # store vocabulatry and its properties 
     content = ""
-    doctype = ""
+    doctype = "" # planning, notification
     indexedSegments = []
     name = "" # equivalent to title
     sentences = []
-    title = ""
+    title = "" # either extraction, customisation
     
     def __contains__(self,key):
         """ Mask for `key in class` function """
@@ -25,14 +25,14 @@ class Document(object):
     
     def __setitem__(self,key,value):
         # value can be Classes
-        if isinstance(value,(Entity,Rhetoric)):
+        if isinstance(value,(Entity,Noun,Rhetoric,Other)):
             if self.archive.get(key):
-                self.archive[key] = [self.archive[key],value]
+                self.archive[key] += [value]
             else:
-                self.archive[key] = value
+                self.archive[key] = [value]
                 
-        elif isinstance(value,(str,Noun,Department,Enterprise,Location,University)):
-            self.archive[key] = value
+        elif isinstance(value,(str,Department,Enterprise,Location,University)):
+            self.archive[key] = [value]
         
         else:
             raise TypeException("Invalid value for archive.")
@@ -75,27 +75,41 @@ class Document(object):
         return "\n".join(lines)
 
 
-class Noun(object):
-    def __init__(self,name):
+class Other(object):
+    def __init__(self,name,tag,sentence):
         self.name = name
+        self.tag = tag
+        self.sentence = sentence
     
+    def __str__(self):
+        return "[Other] name:{},tag:{}".format(self.name,self.tag)
+
+
+class Noun(object):
+    def __init__(self,name,sentence):
+        self.name = name
+        self.sentence = sentence
+        
     def __str__(self):
         return "[Noun] {}".format(self.name)
 
     
 class Rhetoric(object):
-    def __init__(self,src,tar,srcType):
+    def __init__(self,src,tar,srcType,sentence):
         self.src = src
         self.tar = tar
         self.srcType = srcType
+        self.sentence = sentence
+        
     def __str__(self):
         return "[Rhetoric] source:{}({}),target:{}".format(self.src,self.srcType,self.tar)
     
 
 class Verb(object):
-    def __init__(self,name,tag):
+    def __init__(self,name,tag,sentence):
         self.name = name
         self.tag = tag
+        self.sentence = sentence
         
     def __str__(self):
         return "[Verb] name:{},tag:{}".format(self.name,self.tag)
@@ -109,6 +123,7 @@ class Entity(object):
         self.tar = tar
         self.decoration = decoration
         self.triple = (src,decoration,tar)
+        self.sentence = sentence
         # BIO annotation:
         bio = ""
         src = ""
@@ -147,7 +162,7 @@ class Time(object):
     hour = ""
     minute = ""
     second = ""
-    def __init__(self,name,raw,**kw):
+    def __init__(self,name,sentence,raw,**kw):
         """ Time class: recognize time element in corpus
         :name: normalised time format e.g. "2011-11-11 00:00:00"
         :raw: raw textual mention in the raw corpus
@@ -170,9 +185,10 @@ class University(object):
     :param name: the name of university
     :param location: the location of university
     """
-    def __init__(self,name,location="unknown"):
+    def __init__(self,name,sentence,location="unknown"):
         self.name = name
         self.location = location
+        self.sentence = sentence
     
     def __str__(self):
         return "[University] name:{}".format(self.name)
@@ -183,9 +199,10 @@ class Location(object):
     :param name: the name of location
     :param province: administrative region of province
     """
-    def __init__(self,name,province="unknown"):
+    def __init__(self,name,sentence,province="unknown"):
         self.name = name
         self.province = province
+        self.sentence = sentence
         self.long = "" # can be updated
         self.lat = ""
         
@@ -198,9 +215,10 @@ class Department(object):
     :param name: the name of department
     :param tier: the level of department
     """
-    def __init__(self,name,tier="unknown"):
+    def __init__(self,name,sentence,tier="unknown"):
         self.name = name
         self.tier = tier
+        self.sentence = sentence
     
     def __str__(self):
         return "[Department] name:{} tier:{}".format(self.name,self.tier)
@@ -211,9 +229,10 @@ class Enterprise(object):
     :param name: the name of enterprise
     :param location: the location of enterprise
     """
-    def __init__(self,name,location="unknown"):
+    def __init__(self,name,sentence,location="unknown"):
         self.name = name
         self.location = location
+        self.sentence = sentence
         
     def __str__(self):
         return "[Enterprise] name:{} location:{}".format(self.name,self.location)

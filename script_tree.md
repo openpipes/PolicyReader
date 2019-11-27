@@ -8,6 +8,7 @@ TOP :: PolicyReader
             function :: verbalExtractor --list
             function :: timeExtractor --list
             function :: nounExtractor --list
+            function :: pretrainExtractor
         
 
 	planning - class :: type :: Planning (if it can be recognized autmatically)

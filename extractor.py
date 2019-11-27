@@ -14,7 +14,7 @@ import numpy as np
 from collections import Counter
 #from .parser import Parser,DependencyParser
 #from .type import *
-#Entity,Rhetoric,Noun,Department,Enterprise,Location,University
+#Entity,Rhetoric,Noun,Department,Enterprise,Location,University,Other
 
 import logging
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
@@ -34,7 +34,7 @@ class EntityExtractor(object):
         relObj = []
         vob_entites,rhe,noun = [],[],[]
         for index,each in enumerate(corpus):
-            _rel = DependencyParser()._default_parser(each)
+            _rel = DependencyParser().default_parser(each)
             # pre-defined entities like: org, people, loc...
             self.entityExtractor(_rel)
             self.rhetoricExtractor(_rel)
@@ -54,7 +54,7 @@ class EntityExtractor(object):
     
     
     def genVocabulary(self):
-        self.doc.vocab = [key for key in self.doc.archive.keys()]
+        self.doc.vocab = list(set([key for key in self.doc.archive.keys()]))
     
     
     def embedding(self):
@@ -99,7 +99,11 @@ class EntityExtractor(object):
         """
         doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
-        ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")
+        try:
+            filepath = os.path.abspath(os.path.dirname(__file__))
+            ref = open(filepath+"/Policy/src/hanlpNounTermRef.txt","r",encoding="utf8")
+        except:
+            ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")
         # more efficient if using array other than hashmap
         terms = {each.split(",")[0]:each.split(",")[1] for each in ref.read().splitlines()}
         ref.close()
@@ -107,13 +111,13 @@ class EntityExtractor(object):
         for name,tag in zip(df["LEMMA"],df["POSTAG"]):
             if tag in terms:
                 if tag == "nto":
-                    doc[name] = Department(name)
+                    doc[name] = Department(name,relObj.default_text)
                 elif tag == "ntc":
-                    doc[name] = Enterprise(name)
+                    doc[name] = Enterprise(name,relObj.default_text)
                 elif tag.startswith("ns"):
-                    doc[name] = Location(name)
+                    doc[name] = Location(name,relObj.default_text)
                 else:
-                    doc[name] = terms[tag]
+                    doc[name] = Other(name,terms[tag],relObj.default_text)
         # end        
         self.doc = doc
     
@@ -145,12 +149,12 @@ class EntityExtractor(object):
                             if len(q) > 1:
                                 q = q.drop(index=q[q["LEMMA"]==src].index)
                                 tar = "".join(q["LEMMA"].tolist())
-                                doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype)
+                                doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype,sentence=relObj.default_text)
                     else:
                         if len(q) > 1:
                             q = q.drop(index=q[q["LEMMA"]==src].index)
                             tar = "".join(q["LEMMA"].tolist())
-                            doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype)
+                            doc[src] = Rhetoric(src=src,tar=tar,srcType=srctype,sentence=relObj.default_text)
                 # end
             # end
         # end
@@ -193,7 +197,7 @@ class EntityExtractor(object):
             each = each[each["POSTAG"]!="w"]
             name = "".join(each["LEMMA"].tolist())
             if name not in _dup:
-                doc[name] = Noun(name)     
+                doc[name] = Noun(name,relObj.default_text)     
             _dup += [name]
             _dup = list(set(_dup))
         
@@ -228,9 +232,9 @@ class EntityExtractor(object):
             # remove the duplicated entity (e.g. subset of the existed)
             if not duplicates.empty:
                 if row["ID"] not in duplicates["ID"].values:
-                    doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
+                    doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj.default_text)
             else:
-                doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj._default_text)
+                doc[v] = Entity(src=v,tar=obj,decoration=dec,sentence=relObj.default_text)
             duplicates = duplicates.append(q)
         # end 
         self.doc = doc
