@@ -12,8 +12,11 @@ import os
 import gensim
 import numpy as np
 from collections import Counter
-#from .parser import Parser,DependencyParser
-#from .type import *
+try:
+    from .parser import Parser,DependencyParser
+    from .type import *
+except:
+    pass
 #Entity,Rhetoric,Noun,Department,Enterprise,Location,University,Other
 
 import logging
@@ -36,6 +39,7 @@ class EntityExtractor(object):
         for index,each in enumerate(corpus):
             _rel = DependencyParser().default_parser(each)
             # pre-defined entities like: org, people, loc...
+            self.verbalExtractor()
             self.entityExtractor(_rel)
             self.rhetoricExtractor(_rel)
             self.nounExtractor(_rel)
@@ -60,6 +64,19 @@ class EntityExtractor(object):
     def embedding(self):
         # ./src/wv_model
         pass
+    
+    
+    def verbalExtractor(self):
+        # v::动词 vd::副动词	vf::趋向动词	vg::动词性语素 vi::不及物动词（内动词）	
+        # vl::动词性惯用语	 vn::名动词	vshi::动词“是” x::形式动词	vyou::动词“有”
+        _verbalRef = ["v","vd","vf","vg","vi","vl","vn","vx"]
+        for index,sentence in enumerate(self.doc.indexedSegments):
+            for token in sentence:                   
+                if token[1] in _verbalRef:
+                    self.doc[token[0]] = Verb(token[0],token[1],self.sentences[index])
+            # end for
+        # end for
+    
     
     def keywordExtract(self):
         # prepare sentence-level corpus:
@@ -101,7 +118,7 @@ class EntityExtractor(object):
         df = pd.DataFrame(relObj.default_dependency)
         try:
             filepath = os.path.abspath(os.path.dirname(__file__))
-            ref = open(filepath+"/Policy/src/hanlpNounTermRef.txt","r",encoding="utf8")
+            ref = open(filepath+"/PolicyReader/src/hanlpNounTermRef.txt","r",encoding="utf8")
         except:
             ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")
         # more efficient if using array other than hashmap

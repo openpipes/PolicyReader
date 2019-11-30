@@ -13,7 +13,6 @@ import re
 import pandas as pd
 import copy
 import logging
-#from .type import Verb
 
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
@@ -163,53 +162,6 @@ class Parser(Tokenizer):
         self.doc = doc
         
     def parse(self):
-        """ select verbs and pipe them into Verb class
-        *Attributes:
-            .sentences: raw sentences
-            .indexSegements: pos-tag list
-        """
-        
-        """ word parse: pos-tag analysis """
-        
-        # :verb
-        # v::动词 vd::副动词	vf::趋向动词	vg::动词性语素	vi::不及物动词（内动词）	
-        # vl::动词性惯用语	 vn::名动词	vshi::动词“是”	vx::形式动词	vyou::动词“有”
-        _verbalRef = ["v","vd","vf","vg","vi","vl","vn","vx"] # remove shi and you
-                
-        VERB,OTHER = [],[]
-        VOCAB = {}
-        for index,sentence in enumerate(self.indexedSegments):
-            verb,rhetoric,other = [],[],[]
-            for token in sentence:
-                if VOCAB.get(token[1]):
-                    if token[1] not in VOCAB[token[1]]:
-                        VOCAB[token[1]] += [token[0]]
-                else:
-                    VOCAB[token[1]] = [token[0]]
-                    
-                if token[1] in _verbalRef:
-                    verb += [Verb(token[0],token[1],self.sentences[index])]
-                else:
-                    other += token
-            # end for
-            if verb:
-                VERB += [verb]
-            else:
-                VERB += [[""]]
-
-            if other:
-                OTHER += [other]
-            else:
-                OTHER += [[""]]
-        # end for
-        self.other = OTHER
-        # update Document:
-        self.doc.vocab = VOCAB
-        self.doc.verb = VERB               
-
-        """ time parse: recognise Time """
-
-        
         return self.doc
       
         

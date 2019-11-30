@@ -5,11 +5,19 @@
 @author: mario
 """
 
+
+try:
+    from .parser import *
+    from .extractor import *
+    from .db import Sync
+except:
+    pass
+
 class TypeException(Exception):
     pass
 
 
-class Document(object):
+class Document(Parser,EntityExtractor,Sync):
     archive = {} # store vocabulatry and its properties 
     content = ""
     doctype = "" # planning, notification
@@ -18,6 +26,30 @@ class Document(object):
     sentences = []
     title = "" # either extraction, customisation
     
+    def sync(self,host,port,user,pwd,db,table):
+        """ Sync with database: mySQL and ES """
+        syn = Sync(host,port,user,pwd,db,table)
+
+    
+    
+    def parse(self):
+        self = EntityExtractor(self).dependencyExtract()
+        
+    
+    def query(self,*args):
+        """ Return matched tokens in a list """
+        notInVocab = []
+        inVocab = []
+        for arg in args:
+            if arg in self.vocab:
+                inVocab += vocab[arg]
+            else:
+                notInVocab += [arg]
+        # end for
+        print("[Outlier Words] {}".format(",".join(notInVocab)))
+        return inVocab
+    
+    
     def __contains__(self,key):
         """ Mask for `key in class` function """
         return self[key] is not None
@@ -25,7 +57,7 @@ class Document(object):
     
     def __setitem__(self,key,value):
         # value can be Classes
-        if isinstance(value,(Entity,Noun,Rhetoric,Other)):
+        if isinstance(value,(Verb,Entity,Noun,Rhetoric,Other)):
             if self.archive.get(key):
                 self.archive[key] += [value]
             else:
@@ -39,7 +71,10 @@ class Document(object):
             
         
     def __getitem__(self,key):
-        return self.archive[key]
+        if self.archive[key]:
+            return self.archive[key]
+        else:
+            return None
             
         
     def __init__(self,path=None,string="",title=None):
@@ -57,6 +92,9 @@ class Document(object):
             self.title = title
         else:
             pass # run script
+        
+        # gen basic elements through Parser
+        self = Parser(self).parse()
             
     
     def __str__(self):
