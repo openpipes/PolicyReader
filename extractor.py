@@ -13,11 +13,11 @@ import gensim
 import numpy as np
 from collections import Counter
 try:
-    from .parser import Parser,DependencyParser
     from .type import *
+    from .parser import *
 except:
     pass
-#Entity,Rhetoric,Noun,Department,Enterprise,Location,University,Other
+#Verb,Entity,Rhetoric,Noun,Department,Enterprise,Location,University,Other
 
 import logging
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
@@ -116,7 +116,7 @@ class EntityExtractor(object):
         doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
         try:
-            filepath = os.path.abspath(os.path.dirname(__file__))
+            filepath = os.path.abspath(os.path.dirname(""))
             ref = open(filepath+"/PolicyReader/src/hanlpNounTermRef.txt","r",encoding="utf8")
         except:
             ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")

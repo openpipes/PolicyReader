@@ -1,9 +1,7 @@
 """
 @theme: Database
 """
-import pymysql
-pymysql.install_as_MySQLdb()
-
+import psycopg2
 
 class DatabaseException(Exception):
     pass
@@ -13,18 +11,25 @@ class Sync(object):
     def es_server(self):
         pass
     
-    def sql_server(self,host,port,user,pwd,db,table):
-        config = {
-            'host':host,
-            'port':port,
-            'user':user,
-            'password':pwd,
-            'db':db,
-            'charset':'',
-            'cursorclass':pymysql.cursors.DictCursor,
-        }
-        db = pymysql.connect(**config)
-        cursor = db.cursor()
+    def postgres_server(self,db,user,password,tablename,host="localhost",port="5432"):
+        conn = psycopg2.connect(
+                database=db, 
+                user=user, 
+                password=password, 
+                host=host, 
+                port=port)
+        """
+        cur = conn.cursor()
+        cur.execute(
+                "INSERT INTO {} (token,token_md5) VALUES('{}','{}');".format(
+                tablename,
+                token,
+                token_md5
+                )
+        )
+        
+        conn.commit()
+        conn.close()"""
         # check the tokens if new tokens emerge, update with them
         
 
