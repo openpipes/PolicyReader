@@ -28,7 +28,6 @@ logger.setLevel(logging.INFO)
 class ExtractorException(Exception):
     pass
 
-import datetime
 
 class EntityExtractor(object):
     def dependencyExtract(self):
@@ -36,20 +35,14 @@ class EntityExtractor(object):
         corpus = self.doc.sentences
         # call ._default_parser
         relObj = []
-        t0=datetime.datetime.now()
         for index,each in enumerate(corpus):
             _rel = DependencyParser().default_parser(each)
             # pre-defined entities like: org, people, loc...
-            ee.verbalExtractor()
-            print("verbal: %s"%(datetime.datetime.now()-t0))
-            ee.entityExtractor(_rel)
-            print("entity: %s"%(datetime.datetime.now()-t0))
-            ee.rhetoricExtractor(_rel)
-            print("rhetoric: %s"%(datetime.datetime.now()-t0))
-            ee.nounExtractor(_rel)
-            print("noun: %s"%(datetime.datetime.now()-t0))
-            ee.predefinedExtractor(_rel)
-            print("predefine: %s"%(datetime.datetime.now()-t0))
+            self.verbalExtractor()            
+            self.entityExtractor(_rel)
+            self.rhetoricExtractor(_rel)
+            self.nounExtractor(_rel)
+            self.predefinedExtractor(_rel)
             # temporarily storage:
             relObj += [_rel]
             sys.stdout.write("\r[DependencyParser] process No.{} sentences ...".format(index+1))
