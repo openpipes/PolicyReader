@@ -17,7 +17,7 @@ class TypeException(Exception):
     pass
 
 
-class Document(Parser,EntityExtractor,Sync):
+class Document(Parser,EntityExtractor):
     archive = {} # store vocabulatry and its properties 
     content = ""
     doctype = "" # planning, notification
@@ -28,8 +28,8 @@ class Document(Parser,EntityExtractor,Sync):
     
     def sync(self,host,port,user,pwd,db,table):
         """ Sync with database: mySQL and ES """
-        syn = Sync(host,port,user,pwd,db,table)
-
+        #syn = Sync(host,port,user,pwd,db,table)
+        pass
     
     
     def parse(self):

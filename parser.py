@@ -285,7 +285,7 @@ class DependencyParser(object):
         * Return:
         return the dict object which contains the basic information in CoNLL format
         """
-        self.default_text = text
+        self.default_text = text.strip()
         dep = HanLP.parseDependency(text)
         self.default_hanlpObject = dep
         
@@ -305,16 +305,19 @@ class DependencyParser(object):
         # parsed in dict
         self.default_dependency = dict_conll
         
+        return self
+        
+    def __str__(self):
         # preserve the format: DEPREL:{from: ID.LEMMA,to: HEAD.LEMMA}
         reltable = {rel:[] for rel in dict_conll["DEPREL"]}
         for index,item in enumerate(dict_conll["DEPREL"]):
             reltable[item] += [{"from":"%s_%s"%(dict_conll["LEMMA"][index],dict_conll["ID"][index]),"to":"%s_%s"%(dict_conll["LEMMA"][dict_conll["HEAD"][index] - 1],dict_conll["ID"][dict_conll["HEAD"][index] - 1])}]
-            
+        
         self.default_dependency_relation = reltable
         self.relation = reltable        
         if len(reltable) <= 1:
             self.dependencyString = "(核心关系 %s)"%(reltable["核心关系"][0]["from"])
-            return self
+            return self.dependencyString
         
         # display the dependency in tree plot:
         # display(pd.DataFrame(dict_conll))
@@ -348,7 +351,7 @@ class DependencyParser(object):
         phrase = "(核心关系 %s)"%temp[ladder_keys[-1]]
         # output string:
         self.dependencyString = phrase
-        return self
+        return self.dependencyString
         
     
     def draw(self,img_outdir=None):
@@ -393,9 +396,6 @@ class DependencyParser(object):
         return
         # in the future, we can provide more customized models for dependency parsing:
         
-    def __str__(self):
-        return self.dependencyString
-    
     
     
     

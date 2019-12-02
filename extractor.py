@@ -28,22 +28,28 @@ logger.setLevel(logging.INFO)
 class ExtractorException(Exception):
     pass
 
+import datetime
 
 class EntityExtractor(object):
     def dependencyExtract(self):
         # sentences should be a list of corpus:
-        corpus = self.doc.sentences        
+        corpus = self.doc.sentences
         # call ._default_parser
         relObj = []
-        vob_entites,rhe,noun = [],[],[]
+        t0=datetime.datetime.now()
         for index,each in enumerate(corpus):
             _rel = DependencyParser().default_parser(each)
             # pre-defined entities like: org, people, loc...
-            self.verbalExtractor()
-            self.entityExtractor(_rel)
-            self.rhetoricExtractor(_rel)
-            self.nounExtractor(_rel)
-            self.predefinedExtractor(_rel)
+            ee.verbalExtractor()
+            print("verbal: %s"%(datetime.datetime.now()-t0))
+            ee.entityExtractor(_rel)
+            print("entity: %s"%(datetime.datetime.now()-t0))
+            ee.rhetoricExtractor(_rel)
+            print("rhetoric: %s"%(datetime.datetime.now()-t0))
+            ee.nounExtractor(_rel)
+            print("noun: %s"%(datetime.datetime.now()-t0))
+            ee.predefinedExtractor(_rel)
+            print("predefine: %s"%(datetime.datetime.now()-t0))
             # temporarily storage:
             relObj += [_rel]
             sys.stdout.write("\r[DependencyParser] process No.{} sentences ...".format(index+1))
@@ -73,7 +79,7 @@ class EntityExtractor(object):
         for index,sentence in enumerate(self.doc.indexedSegments):
             for token in sentence:                   
                 if token[1] in _verbalRef:
-                    self.doc[token[0]] = Verb(token[0],token[1],self.sentences[index])
+                    self.doc[token[0]] = Verb(token[0],token[1],self.doc.sentences[index])
             # end for
         # end for
     
@@ -183,41 +189,47 @@ class EntityExtractor(object):
         # extract nouns by completion
         doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
-        postags = df["POSTAG"].tolist()
-        queryBox = []
-        for index,pos in enumerate(postags):
-            if pos.startswith("n"):
-                row = df.iloc[index,]
-                word = row["LEMMA"]
-                query = relObj.query_by_word(word,1,ID=row["ID"])[0] # type: list
-                if queryBox:
-                    if len(query) > 1:
-                        for index,each in enumerate(queryBox):
-                            if set(query.index).intersection(set(each.index)):
-                                if len(query) > len(each):
-                                    queryBox.pop(index)
-                                    queryBox += [query]
-                                else:
-                                    next
-                            else:
-                                queryBox += [query]
-                        # end
-                    else:
-                        queryBox += [query]
-                else:
-                    queryBox += [query]
-            else:
-                next
-        # end
-        _dup = []
-        for each in queryBox:
-            each = each[each["POSTAG"]!="w"]
-            name = "".join(each["LEMMA"].tolist())
-            if name not in _dup:
-                doc[name] = Noun(name,relObj.default_text)     
-            _dup += [name]
-            _dup = list(set(_dup))
+        tagger = lambda x:True if x.startswith("n") else False
+        subPostag = df[[tagger(each) for each in df["POSTAG"].tolist()]]
         
+        if subPostag.empty:
+            return None
+        
+        qTree = {} # insert the tree
+        for i,word in zip(subPostag["ID"].tolist(),subPostag["LEMMA"].tolist()):
+            keys = qTree.keys()
+            query = relObj.query_by_word(word,1,"downward",i)
+            leaf = query[0].ID.tolist()
+            leaf.remove(i)
+            if set(leaf).intersection(set(keys)):
+                # if leaf is contained in qLeaf:
+                delete = list(set(leaf).intersection(set(keys)))
+                [qTree.pop(each) for each in delete]
+            # append to the Tree:
+            qTree[i] = query[0].ID.tolist()
+                
+        # end
+        Box,skip = [],[]
+        IDer = lambda x:[each-1 for each in x]
+        treeVec = list(qTree.values())
+        treeVec.reverse()
+        for v in treeVec:
+            if v in skip:
+                next
+            else:
+                if len(v)>2: # more reasonable word sequence:
+                    seq = list(range(v[0],v[-1]+1,1))
+                    extra = list(set(seq).difference(set(v)))
+                    if list(extra) in treeVec:
+                        skip += [list(extra)]
+                else:
+                    seq = v
+                    
+                each = df.iloc[IDer(seq)]
+                each = each[each["POSTAG"]!="w"]
+                name = "".join(each["LEMMA"].tolist())
+                doc[name] = Noun(name,relObj.default_text)
+                
         self.doc = doc
         
     
