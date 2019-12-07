@@ -7,5 +7,15 @@
 from flask import Flask
 import json
 
+try:
+    from .db import Postgresql
+except:
+    pass
+
 app = Flask(__name__)
 
+@app.route()
+def formQuery():
+    post = Postgresql()
+    post.connect()
+    post.connection.update()

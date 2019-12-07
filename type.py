@@ -31,6 +31,7 @@ class Rhetoric(object):
         self.srcType = srcType
         self.sentence = sentence
         
+        
     def __str__(self):
         return "[Rhetoric] source:{}({}),target:{}".format(self.src,self.srcType,self.tar)
     

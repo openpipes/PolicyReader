@@ -27,7 +27,7 @@ class Preprocessor(object):
             text = [text]
             
         text = [re.sub("\\n|\\xa0|\\t|\\u0020|\\u00A0|\\u180E|\\u202f|\\u205f|\\u3000|\\u2000-\\u200B"," ",t) for t in text]
-        text = [re.sub("\s+"," ",t) for t in text if len(t)>1]
+        text = [re.sub("\s+"," ",t).strip() for t in text if len(t)>1]
         
         return text
     
@@ -102,7 +102,7 @@ class Tokenizer(Preprocessor):
             # 如果双引号前有终止符，那么双引号才是句子的终点，把分句符\n放到双引号后，注意前面的几句都小心保留了双引号
             para = para.rstrip()  # 段尾如果有多余的\n就去掉它
             # 很多规则中会考虑分号;，但是这里我把它忽略不计，破折号、英文双引号等同样忽略，需要的再做些简单调整即可。
-            res = [x for x in para.split("\n") if len(x)>=5 and x not in filters]
+            res = [re.sub("\s+"," ", x).strip() for x in para.split("\n") if len(x)>=3 and x not in filters]
             res = list(set(res))
         
             if res:
@@ -111,7 +111,7 @@ class Tokenizer(Preprocessor):
             else:
                 next    
         # end for
-        logger.info("\r[Tokenize] fetch %s paragraphs. "%len(tokens))
+        logger.info("[Tokenize] fetch %s paragraphs. "%len(tokens))
         if tokens:
             return tokens
         else:
@@ -120,7 +120,7 @@ class Tokenizer(Preprocessor):
         
     def Segment(self,text) -> list:
         """ Tokenize one sentence into word tokens """
-        segs = HanLP.segment(text)
+        segs = HanLP.segment(text.strip())
         wordArray = []
         for each in segs:
             wordArray += [each.toString().split("/")]
@@ -128,12 +128,21 @@ class Tokenizer(Preprocessor):
         return wordArray
     
     
-    def IndexedSegment(self,sentences) -> dict:
-        index = []
-        for s in sentences:
-            index += [self.Segment(s)]
-        # end for
-        return index
+    def indexedSegment(self,sentences) -> list:
+        new_sentences,indexed = [],[]
+        while True:
+            try:
+                sentence = sentences.pop(0)
+                if sentence.strip():
+                    new_sentences += [sentence]
+                    indexed += [self.Segment(sentence)]
+                else:
+                    next
+            except:
+                break
+            
+        self.sentences = new_sentences
+        return indexed
         
         
     def __init__(self,*args):
@@ -144,7 +153,7 @@ class Tokenizer(Preprocessor):
         self.sentences = self.Phrase(args)
         super(Tokenizer, self).__init__(self.sentences)
         # indexed sentences:
-        self.indexedSegments = self.IndexedSegment(self.sentences)
+        self.indexedSegments = self.indexedSegment(self.sentences)
         
 
 class Parser(Tokenizer):

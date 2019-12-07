@@ -12,6 +12,7 @@ import os
 import gensim
 import numpy as np
 from collections import Counter
+
 try:
     from .type import *
     from .parser import *
@@ -23,6 +24,9 @@ import logging
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# get __file__ path:
+__MODULEPATH__ = os.path.dirname(os.path.abspath(__file__))
 
 
 class ExtractorException(Exception):
@@ -116,10 +120,9 @@ class EntityExtractor(object):
         doc = self.doc
         df = pd.DataFrame(relObj.default_dependency)
         try:
-            filepath = os.path.abspath(os.path.dirname(""))
-            ref = open(filepath+"/PolicyReader/src/hanlpNounTermRef.txt","r",encoding="utf8")
+            ref = open(doc.module_path+"/src/hanlpNounTermRef.txt","r",encoding="utf8")
         except:
-            ref = open("./src/hanlpNounTermRef.txt","r",encoding="utf8")
+            ref = open(self.module_path+"/src/hanlpNounTermRef.txt","r",encoding="utf8")
         # more efficient if using array other than hashmap
         terms = {each.split(",")[0]:each.split(",")[1] for each in ref.read().splitlines()}
         ref.close()
@@ -202,7 +205,7 @@ class EntityExtractor(object):
             qTree[i] = query[0].ID.tolist()
                 
         # end
-        Box,skip = [],[]
+        skip = []
         IDer = lambda x:[each-1 for each in x]
         treeVec = list(qTree.values())
         treeVec.reverse()
@@ -241,7 +244,7 @@ class EntityExtractor(object):
         df_vob = df[df["DEPREL"] == "动宾关系"]
         if df_vob.empty: # no 动宾关系 found
             return []
-        vob = []
+
         duplicates = pd.DataFrame()
         for i in range(len(df_vob)):
             row = df_vob.iloc[i,]
@@ -262,10 +265,11 @@ class EntityExtractor(object):
         self.doc = doc
         
     
-    def __init__(self,doc):
+    def __init__(self,doc,module_path=__MODULEPATH__):
         """ EntityExtractor extracts entity from Document 
             Document class will be updated with entities
         """
+        self.module_path = module_path
         self.doc = doc
         # doc contains a really large corpus:
         if not doc.sentences:
