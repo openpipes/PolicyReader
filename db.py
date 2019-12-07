@@ -44,25 +44,11 @@ class ElasticServer(object):
             return collection
         
     
-    def insert(self,tokenDict:dict):
-        # example: tokenDict = {string:**kw}
-        collections,updateLog = [],[]
-        for token,value in tokenDict.items():
-            if not self.exists(token):
-                collections += [self.create(token,**value)]
-            else:
-                self.update(token,**value)
-                updateLog += [self.to_md5(token)]
-            
-        self.response = helpers.bulk(self.es,collections)
-        logger.info("[ES insert] insert {} tokens, update {} tokens ".format(len(collections),len(updateLog)))
-        
-    
     def to_md5(self,string):
         return hashlib.md5(string.encode("utf8")).hexdigest()
 
 
-    def exixts(self,string):
+    def exists(self,string):
         """ Return boolean """
         if self.es:
             return self.es.exists(index=self.index,doc_type=self.doc_type,id=self.to_md5(string))     
@@ -84,12 +70,27 @@ class ElasticServer(object):
                     if v not in source[k]:
                         source[k] += [v]
                     else:
-                        duplicates += [self.md5(string)]
+                        duplicates += [self.to_md5(string)]
                 else:
                      raise DatabaseException("Failed update elasticsearch index: %s"%self.index)
             # end
             logger.warning("[ES update] find {} duplicates: {} ".format(len(duplicates),", ".join(duplicates)))
-
+            
+            
+    def insert(self,tokenDict:dict):
+        # example: tokenDict = {string:**kw}
+        collections,updateLog = [],[]
+        for token,value in tokenDict.items():
+            if not self.exists(token):
+                collections += [self.create(token,**value)]
+            else:
+                self.update(token,**value)
+                updateLog += [self.to_md5(token)]
+            
+        self.response = helpers.bulk(self.es,collections)
+        logger.info("[ES insert] insert {} tokens, update {} tokens ".format(len(collections),len(updateLog)))
+        
+        
     def __init__(self):
         """ Builder with DB Sync : ElasticSearch """
         self.es = ""
@@ -119,28 +120,40 @@ class PsqlServer(object):
     
     def queryColumn(self):
         cursor = self.server.cursor()
-        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name<>'%s' and table_schema='public';"%self.table)
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='%s' and table_schema='public';"%self.table)
         data = cursor.fetchall()
         cursor.close()
+        self.server.commit()
         columns = []
         for each in data: columns.append(each[0])
+        # note: sql columns rank in a alphabet order
         return columns
     
     
     def queryAll(self):
+        self.server.rollback()
         cursor = self.server.cursor()
         cursor.execute("select * from %s;"%self.table)
         data = cursor.fetchall()        
         df = pd.DataFrame(data) # don't allow column indexing
-        df.columns = self.queryColumn()
+        if not df.empty:
+            df.columns = self.queryColumn()
+            
         cursor.close()
+        self.server.commit()
         return df
     
     
     def exists(self,k,v):
         df = self.queryAll()
-        if v in self.duplicates.get(k):
-            return True
+        if df.empty:
+            return False
+        
+        if self.duplicates.get(k):
+            if v in self.duplicates[k]:
+                return True
+            else:
+                return False
         
         if k in df.columns:
             if v in df[k].tolist():
@@ -161,25 +174,32 @@ class PsqlServer(object):
         :param: **kws allows correct terms to be typed into server.
         """
         if not self.duplicates: # initialise
-            self.duplicates = {k:[] for k in kws.keys()}
+            self.duplicates = {k:"" for k in kws.keys()}
             
         if self.server.status:
             # compare current data and data in database:
-            insertLog = []
+            DUPLICATED = False
+            keys,values = "",""
             for k,v in kws.items():
-                if not self.exists(k,v):
-                    keys = ",".join(["%s"%v for v in kws.keys()])
-                    values = ",".join(["'%s'"%v for v in kws.values()])
-                    syntax = "INSERT INTO {} ({}) VALUES({});"%(self.table,keys,values)
+                keys = "{} {}".format(keys,k)
+                values = "{} '{}'".format(values,v)
+                if self.exists(k,v):
+                    DUPLICATED = True
+                    
+                self.duplicates[k] = v                
+            # syntax:
+            if not DUPLICATED:
+                try:
+                    syntax = "INSERT INTO {} ({}) VALUES({});".format(self.table,keys.replace(" ",",").strip(","),values.replace(" ",",").strip(","))
                     cursor = self.server.cursor()
                     # syntax like: INSERT INTO ...
                     cursor.execute(syntax)
+                    cursor.close()
                     self.server.commit()
-                    insertLog += [v]
-            # end
-            logger.info("[psql insert] {} records: ".format(len(insertLog),", ".join(insertLog)))
-            self.server.close()
-            
+                    logger.info("[psql insert] 1 record. ")
+                except:
+                    logger.info("[psql insert] find 1 duplication. ")
+                
         else:
             raise DatabaseException("Invalid connection to PostgreSQL")
     
@@ -187,7 +207,7 @@ class PsqlServer(object):
     def __init__(self,db,user,password,tablename,host="localhost",port="5432"):
         # local repeat check:
         self.duplicates = {}
-        self.connect(db,user,password,tablename,host,port)
+        self = self.connect(db,user,password,tablename,host,port)
         if self.server.status:
             pass
         else:
@@ -206,8 +226,7 @@ class Sync(PsqlServer,ElasticServer):
     def syncPickle(self,token,obj):
         """ Local .pkl sync with Document """
         hashValue = hashlib.md5(token.encode("utf8")).hexdigest()
-        filepath = os.path.abspath(os.path.dirname(""))
-        objectpath = filepath+"/objects/"
+        objectpath = self.doc.module_path+"/objects/"
         
         if not os.path.isdir(objectpath):
             os.makedirs(objectpath)
@@ -221,13 +240,12 @@ class Sync(PsqlServer,ElasticServer):
         
     def sync(self,**config):
         # syncToPsql:
-        psql = PsqlServer(**config)
-        psql.connect()
+        psql = PsqlServer(config.get("db"),config.get("user"),config.get("password"),config.get("tablename"),config.get("host"),config.get("port"))
         
         # syncToES:
-        esToken = ElasticServer().connect(index="Token",doc_type="PolicyReader")
-        esSentence = ElasticServer().connect(index="Sentence",doc_type="PolicyReader")
-        esArticle = ElasticServer().connect(index="Article",doc_type="PolicyReader")
+        esToken = ElasticServer().connect(index="token",doc_type="policyreader")
+        esSentence = ElasticServer().connect(index="sentence",doc_type="policyreader")
+        esArticle = ElasticServer().connect(index="article",doc_type="policyreader")
         
         # count:
         get_classname = lambda x:re.findall("'.+\..+'",str(type(x)))[0].split(".")[-1].strip("'") if re.findall("'.+\..+'",str(type(x))) else False
@@ -242,12 +260,12 @@ class Sync(PsqlServer,ElasticServer):
                 count_token[token] = 1
           
             # toPsql:
-            value = {"token_md5":psql.to_md5(token),"token":token}
+            value = {"token_md5":psql.to_md5(token),"token_value":token}
             psql.insert(**value)
             
             # .md5 shoud be attribute of Document
             objList = self.doc[token]
-            articleDict = {self.doc.md5:self.doc.content}
+            articleDict = {self.doc.md5:{"article":self.doc.content}}
             
             for obj in objList:
                 sentenceDict = {

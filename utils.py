@@ -22,7 +22,7 @@ class PDF(object):
 	def __init__(self,filepath):
 		# only accept :filepath: , and execute in command line
 		self.filepath = os.path.abspath(filepath)
-		self.abspath = "/".join(self.filepath.split("/")[:-1])
+		self.abspath = os.path.dirname(self.filepath)
 		self.random = uuid.uuid4().hex
     
     
