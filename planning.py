@@ -36,29 +36,30 @@ class Document(Parser,EntityExtractor,Sync,FileLoader):
     countObjects = {}
     
     def summary(self):
+        omit = ["Verb"]
         if self.countTokens:
             pass
         else:
             get_classname = lambda x:re.findall("'.+\..+'",str(type(x)))[0].split(".")[-1].strip("'") if re.findall("'.+\..+'",str(type(x))) else False
             count_object,count_token = {},{}
             for token in self.vocab:
-                # count token:
-                if count_token.get(token):
-                    count_token[token] += 1
-                else:
-                    count_token[token] = 1
                 # count objects:
+                omit_obj = 0
                 for obj in self.archive[token]:
                     objname = get_classname(obj)
+                    if objname not in omit:
+                        omit_obj += 1
                     if objname:
                         if count_object.get(objname):
                             count_object[objname] += 1
                         else:
                             count_object[objname] = 1
-                # end
+                # count token:
+                # it's better to remove Verbs but remain VOB tokens
+                count_token[token] = len(omit_obj)
             # end
             self.countTokens = sorted(count_token.items(),key = lambda x:x[1],reverse=True)
-            self.countObjects = sorted(count_object.items(),key = lambda x:x[1],reverst=True)
+            self.countObjects = sorted(count_object.items(),key = lambda x:x[1],reverse=True)
         # end
         sticker = lambda counts:["{}:{}".format(tup[0],tup[1]) for tup in counts]
         token_stat = """

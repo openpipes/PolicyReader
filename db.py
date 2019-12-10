@@ -223,6 +223,13 @@ class Sync(PsqlServer,ElasticServer):
         """
         self.doc = doc
     
+    def appendPickle(self,token,obj):
+        pass
+    
+    def existsPickle(self,token):
+        pass
+    
+    
     def syncPickle(self,token,obj):
         """ Local .pkl sync with Document """
         hashValue = hashlib.md5(token.encode("utf8")).hexdigest()
@@ -237,6 +244,8 @@ class Sync(PsqlServer,ElasticServer):
         pfile.close()
         logger.info("[Sync pickle] pickled %s "%hashValue)
     
+        # if exists, append to pickle file
+    
         
     def sync(self,**config):
         # syncToPsql:
@@ -249,16 +258,10 @@ class Sync(PsqlServer,ElasticServer):
         
         # count:
         get_classname = lambda x:re.findall("'.+\..+'",str(type(x)))[0].split(".")[-1].strip("'") if re.findall("'.+\..+'",str(type(x))) else False
-        count_object,count_token = {},{}
         
+        count_object,count_token = {},{}
         tokenDict = {}
         for token in self.doc.vocab:
-            # count token:
-            if count_token.get(token):
-                count_token[token] += 1
-            else:
-                count_token[token] = 1
-          
             # toPsql:
             value = {"token_md5":psql.to_md5(token),"token_value":token}
             psql.insert(**value)
@@ -267,6 +270,9 @@ class Sync(PsqlServer,ElasticServer):
             objList = self.doc[token]
             articleDict = {self.doc.md5:{"article":self.doc.content}}
             
+            # count token:
+            omit_obj = 0
+            omit = ["Verb"]
             for obj in objList:
                 sentenceDict = {
                     esToken.to_md5(obj.sentence):
@@ -282,6 +288,10 @@ class Sync(PsqlServer,ElasticServer):
                         count_object[objname] += 1
                     else:
                         count_object[objname] = 1  
+                if objname not in omit:
+                    omit_obj += 1
+                # count token:
+                count_token[token] = omit_obj
                     
             tokenValue = {
                     "token":token,
