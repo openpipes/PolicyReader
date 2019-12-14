@@ -9,13 +9,13 @@ from datetime import datetime
 import sys
 import pandas as pd
 import os
-import gensim
 import numpy as np
 from collections import Counter
 
 try:
     from .type import *
     from .parser import *
+    from .nlp import WVModel
 except:
     pass
 #Verb,Entity,Rhetoric,Noun,Department,Enterprise,Location,University,Other
@@ -87,8 +87,11 @@ class EntityExtractor(object):
         indexedSegments = [[word[0] for word in sentence if word[1]!="w"] for sentence in indexedSegments]
         indexedSegments = [list(set(sentence)) for sentence in indexedSegments]
         # train word2vec model:
-        model = gensim.models.word2vec.Word2Vec(indexedSegments)
-        self.doc.wvmodel = model
+        wvm = WVModel(self.doc.module_path + "/model/")
+        # wvm.initModel(wvm.buildSegmentCorpus(self.doc))
+        wvm.initModel(wvm.buildVocabCorpus(self.doc))
+        model = wvm.model
+
         def predict_proba(oword, iword):
             iword_vec = model[iword]
             oword = model.wv.vocab[oword]
@@ -98,10 +101,10 @@ class EntityExtractor(object):
             lprob = -sum(np.logaddexp(0, -dot) + 1*dot) 
             return lprob
 
-        def keywords(s):
+        def keywords(s,topn=3):
             s = [w for w in s if w in model]
             ws = {w:sum([predict_proba(u, w) for u in s]) for w in s} # N*N complexity
-            return Counter(ws).most_common(n=10)
+            return Counter(ws).most_common(n=topn)
         # extract:
         indexedKeywords = []
         for s in indexedSegments:

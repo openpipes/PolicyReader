@@ -8,6 +8,46 @@
 import os
 import uuid
 import fulltext
+import json
+import re
+
+############## Text Rebuilding ###############
+class RebuildException(Exception):
+    pass
+
+
+class TextRebuild(object):
+    """
+    TextRebuild rebuilds article by labelling title,section,tables
+    :param: raw (keep symbols) string input / or separatedly handle different file formats
+    :return: json (with keywords or sections labelled in json boxes)
+    """
+    # title_rebuild cannot be handled by RegExpr
+    regex_sec_rebuild = re.compile("^第.章.*|^[一二三四五六七八九十]、.*|^\d\.*")
+    regex_subsec_rebuild = re.compile("^第.节.*|^（[一二三四五六七八九十]）.*|^（\d）*")
+    regex_table_rebuild = re.compile("")  # \n,\t,\s ?
+    
+    def __init__(self,string):
+        if not string:
+            RebuildException("Invalid rebuilding input, need a real string")
+        
+        self.string = string
+    
+    def jsonify(self):
+        pass
+    
+    def build(self):
+        """
+        Build the framework of input string as a document
+        """
+        
+        
+        pass
+        
+        
+        
+
+############## File selector ###############
 
 class inputError(Exception):
     pass

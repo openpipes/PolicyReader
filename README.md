@@ -1,37 +1,33 @@
-# PolicyReader
+# PolicyReader v1.2
 
-Policy reader is a handy toolkit for users to easily understand the components of a regulatory document. :smile:
+Policy Reader is a handy toolkit for users to easily understand the components of a regulatory document. :smile:
 
-This project is anchored at a key Research Plan under the framework of Institutes of Science and Development, Chinese Academy of Sciences (Beijing).
+This project is issued by the Key Research Plan under the framework of Institutes of Science and Development, Chinese Academy of Sciences (Beijing).
 
 ### Getting Started
 
-Try examples in `./src` directory and run it. Before executing the codes, change your directory to the root of `PolicyReader`:
+Try examples in `./src` directory and run it. Before executing the codes, append your module path into `sys.path` with the root of `PolicyReader`:
 
 ```python
 import sys
-sys.path.append("./")
-from PolicyReader.type import *
-from PolicyReader.parser import Parser,DependencyParser
-from PolicyReader.extractor import EntityExtractor
+sys.append("directory/of/PolicyReader/")
+import PolicyReader as pr
 
-# make sure the working directory is the root of PolicyReader
-doc = Document("./src/example_information_guangxi_135.txt")
-doc = Parser(doc).parse()
-doc = EntityExtractor(doc).dependencyExtract()
+# Try demo:
+pr.demo()
 
-# display:
-for index in range(1,10,1):
-    _ = "{}\n{}\n{}\n-------------".format(
-        "\n".join([each.__str__() for each in doc.entity[index]]),
-        "\n".join([each.__str__() for each in doc.rhetoric[index]]),
-        "\n".join([each.__str__() for each in doc.noun[index]]))
-    print(_)
+# Try a random string:
+demo_string = "经济综合实力跃上新台阶，地区生产总值、固定资产投资、规模以上工业总产值、金融机构存贷款余额等指标超过万亿元，预计2015年地区生产总值达到1.68万亿元，年均增长10.1%。经济结构调整步伐加快，千亿元产业增至10个，新兴产业加快成长，服务业增加值比重提高，农业农村发展态势良好，城镇化水平提升，“双核驱动、三区统筹”区域发展协调推进。"
+doc = pr.read(demo_string)
+doc.summary()
+
+# Try a piece of corpus:
+doc = pr.read("path/to/PolicyReader/src/example_information_guangxi_135.txt")
+doc.summary()
 ```
 
-
-
 ### TODO List
+In the next stage, semantic search will be added and also the front-end. 
 
-- Automated labeling for paragraphs
-- Improve the precision of extractions
+- API services
+- Semantic tools

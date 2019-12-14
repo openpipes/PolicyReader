@@ -1,20 +1,5 @@
 import os
-
-__INFO__ = """
-		Policy Reader Toolkit (v1.1)
-This toolkit contains a list of components helping with parse context and extract useful entities in a Policy or regulatory document.
-*************** demo ***************
-# import sys
-# sys.path.append("<root path of PolicyReader module>")
-# import PolicyReader as pr
-pr.demo()
-
-# prefer manual operation?
-demo_string = "经济综合实力跃上新台阶，地区生产总值、固定资产投资、规模以上工业总产值、金融机构存贷款余额等指标超过万亿元，预计2015年地区生产总值达到1.68万亿元，年均增长10.1%。经济结构调整步伐加快，千亿元产业增至10个，新兴产业加快成长，服务业增加值比重提高，农业农村发展态势良好，城镇化水平提升，“双核驱动、三区统筹”区域发展协调推进。"
-doc = pr.read(demo_string)
-doc.summary()
-"""
-print(__INFO__)
+import numpy as np
 
 try:
     from .planning import Document
@@ -47,13 +32,20 @@ def outline(str_file_dir,*args,**kwargs):
     pass
 
 
-def keywords(str_file_dir,topn=20,*args,**kwargs):
+def keywords(str_file_dir,topn=10,*args,**kwargs):
     """ Automated keywords extraction
     :param: topn controls the number of keywords extracted
     """
-    doc = Document(str_file_dir)
+    if os.path.isfile(str_file_dir):
+        doc = Document(path = str_file_dir)
+    else:
+        doc = Document(string = str_file_dir)
     doc.parse()
-    print("[Keywords] "+", ".join(doc.keywords[:20]))
+    # keywords:
+    keys = [[item[0] for item in each] for each in doc.keywords[:topn]]
+    array = np.array(keys)
+    keys = list(array.reshape(array.shape[0] * array.shape[1]))
+    print("[Keywords] "+", ".join(keys))
 
 
 def demo():

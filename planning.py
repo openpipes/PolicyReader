@@ -34,6 +34,7 @@ class Document(Parser,EntityExtractor,Sync,FileLoader):
     md5 = ""
     countTokens = {}
     countObjects = {}
+    module_path = os.path.dirname(os.path.abspath(__file__))
     
     def summary(self):
         omit = ["Verb"]
@@ -56,7 +57,7 @@ class Document(Parser,EntityExtractor,Sync,FileLoader):
                             count_object[objname] = 1
                 # count token:
                 # it's better to remove Verbs but remain VOB tokens
-                count_token[token] = len(omit_obj)
+                count_token[token] = omit_obj
             # end
             self.countTokens = sorted(count_token.items(),key = lambda x:x[1],reverse=True)
             self.countObjects = sorted(count_object.items(),key = lambda x:x[1],reverse=True)
@@ -86,7 +87,10 @@ class Document(Parser,EntityExtractor,Sync,FileLoader):
         
     def parse(self):
         self = EntityExtractor(self).dependencyExtract()
-        
+        logger.info("[Document Build] dependency built. ")
+        self = EntityExtractor(self).keywordExtract()
+        logger.info("[Document Build] keywords built. ")
+    
     
     def query(self,*args):
         """ Return matched tokens in a list """
